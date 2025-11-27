@@ -1,0 +1,143 @@
+
+
+export interface GradeScores {
+  // Periodo 1
+  inter_1: 'GREEN' | 'RED' | ''; // Semáforo
+  trim_1: string; // Numérico
+  
+  // Periodo 2
+  inter_2: 'GREEN' | 'RED' | '';
+  trim_2: string;
+
+  // Periodo 3
+  inter_3: 'GREEN' | 'RED' | '';
+  trim_3: string;
+  
+  [key: string]: string;
+}
+
+export interface Student {
+  id: number;
+  name: string;
+  grade: string; // "1°", "2°", "3°", "Egresado"
+  group: string; // "A", "B", "C", "D"
+  technology?: string; // Nuevo campo para el Taller
+  grades: Record<string, GradeScores>; // Key is Subject Name
+  status?: 'active' | 'graduated'; // Nuevo campo de estatus
+}
+
+export interface SchoolGradeStructure {
+  grade: string;
+  groups: string[];
+  subjects: string[];
+  hiddenSubjects?: string[]; // Asignaturas que no aparecen en boleta ni promedio
+}
+
+export type Role = 'admin' | 'teacher' | 'subdirector' | 'administrative' | 'red_escolar' | 'laboratorista' | 'apoyo';
+
+export interface SubjectAssignment {
+  grade: string;
+  group: string;
+  subject: string;
+  technology?: string; // Opcional: Solo si la materia es Tecnología
+}
+
+export interface User {
+  id: string;
+  name: string;
+  username: string;
+  password?: string; // Added for credential management simulation
+  role: Role;
+  assignments?: SubjectAssignment[]; // Only for teachers
+  workSchedule?: Record<string, string>; // Para personal de apoyo: { "Lunes": "14:00-19:00", ... }
+}
+
+export interface Citation {
+  id: string;
+  studentId?: number | null; // Made optional for manual entry
+  studentName: string;
+  group: string; // Now stores full string like "1° A"
+  date: string;
+  time: string;
+  reason: string;
+  createdAt: string;
+  teacherId?: string; // ID del profesor que cita
+  teacherName?: string; // Nombre del profesor que cita
+}
+
+export interface VisitLog {
+  id: string;
+  studentId?: number | null; // Made optional for manual entry
+  studentName: string;
+  grade: string; // Can be empty if manual group string covers it
+  group: string; // Stores manual input
+  parentName: string; // Who visited
+  date: string;
+  startTime: string;
+  endTime: string;
+  subject: string; // Asunto
+  narrative: string; // Narrativa de hechos
+  agreementsParent: string; // Compromisos padre
+  agreementsStudent: string; // Compromisos alumno
+  teacherIntervention: string; // Intervencion docente
+  faultType: string; // Falta marco convivencia
+  formativeActions: string; // Acciones formativas
+}
+
+export interface Minuta {
+  id: string;
+  studentId?: number | null; // Made optional
+  studentName: string;
+  grade: string;
+  group: string;
+  parentName: string;
+  date: string;
+  startTime: string;
+  subject: string; // Motivo de la atencion/queja
+  description: string; // Descripción de la situación
+  previousActions: string; // Acciones realizadas / Respuesta previa
+  agreements: string; // Acuerdos
+  attendedBy?: string; // Nombre de quien atiende (manual)
+}
+
+export interface ScheduleEntry {
+  id: string;
+  teacherId: string;
+  day: string; // 'Lunes', 'Martes', etc.
+  period: number; // 1 to 7
+  gradeGroup: string; // "1A", "2B" for Academic OR "11", "12" for Tech
+  type?: 'academic' | 'technology' | 'support'; // Added 'technology' type
+}
+
+export interface SchoolData {
+  name: string;
+  director: string;
+  subdirector: string; // Nuevo campo
+  teachers: number;
+  studentsCount: number;
+  gradesStructure: SchoolGradeStructure[];
+  technologies: string[]; // Lista dinámica de talleres
+  studentsData: Student[];
+  users: User[];
+  allowedPeriods: string[]; // Changed from allowedMonths to allowedPeriods (inter_1, trim_1, etc)
+  periodDeadlines?: Record<string, string>; // Map period key to ISO date string deadline
+  citations: Citation[];
+  visitLogs: VisitLog[];
+  minutas: Minuta[];
+  schedules: ScheduleEntry[]; // Horarios
+  
+  // Layout persistente de la sábana para guardar el orden y selección de filas
+  sabanaLayout?: {
+      academic: string[]; // Array de teacherIds
+      technology: string[]; // Array de teacherIds (Nuevo)
+      support: string[];  // Array de teacherIds
+  };
+
+  subdirectorName?: string;
+  // New Official Fields
+  alcaldia: string;
+  zonaEscolar: string;
+  turno: string;
+}
+
+export type PageId = 'dashboard' | 'grades' | 'grade-registration' | 'teachers' | 'subdireccion' | 'students-list' | 'subjects-selection' | 'grade-entry' | 'reports' | 'teacher-classes' | 'grade-control' | 'subjects-config' | 'schedules';

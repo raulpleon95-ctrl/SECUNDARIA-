@@ -21,6 +21,11 @@ const GradeRegistrationView: React.FC<GradeRegistrationViewProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   
+  // Sync local data with prop data (for real-time updates)
+  useEffect(() => {
+      setLocalData(data);
+  }, [data]);
+
   // --- SELECTION STATE ---
   const [selectedGrade, setSelectedGrade] = useState<string>('');
   const [selectedSubject, setSelectedSubject] = useState<string>('');
@@ -336,10 +341,10 @@ const GradeRegistrationView: React.FC<GradeRegistrationViewProps> = ({
                                                         className={`w-6 h-6 rounded-full border transition-all shadow-sm flex items-center justify-center
                                                             ${status === 'GREEN' 
                                                                 ? 'bg-green-500 border-green-600 ring-2 ring-green-200 scale-110' 
-                                                                : 'bg-slate-100 border-slate-200 hover:bg-green-100'
+                                                                : 'bg-green-100 border-green-200 hover:bg-green-200' 
                                                             } 
                                                             ${interLocked 
-                                                                ? (status === 'GREEN' ? 'opacity-100' : 'opacity-20') 
+                                                                ? (status === 'GREEN' ? 'opacity-100' : 'opacity-30') 
                                                                 : 'opacity-100'
                                                             }
                                                             disabled:cursor-not-allowed`}
@@ -352,10 +357,10 @@ const GradeRegistrationView: React.FC<GradeRegistrationViewProps> = ({
                                                         className={`w-6 h-6 rounded-full border transition-all shadow-sm flex items-center justify-center
                                                             ${status === 'RED' 
                                                                 ? 'bg-red-500 border-red-600 ring-2 ring-red-200 scale-110' 
-                                                                : 'bg-slate-100 border-slate-200 hover:bg-red-100'
+                                                                : 'bg-red-100 border-red-200 hover:bg-red-200'
                                                             }
                                                             ${interLocked 
-                                                                ? (status === 'RED' ? 'opacity-100' : 'opacity-20') 
+                                                                ? (status === 'RED' ? 'opacity-100' : 'opacity-30') 
                                                                 : 'opacity-100'
                                                             }
                                                             disabled:cursor-not-allowed`}

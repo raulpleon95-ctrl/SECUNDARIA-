@@ -1,7 +1,5 @@
-
-
 import React from 'react';
-import { Home, Users, Building2, Briefcase, LogOut, Menu, Book, X, FileText, Lock, Library, CalendarDays } from 'lucide-react';
+import { Home, Users, Building2, Briefcase, LogOut, Menu, Book, X, FileText, Lock, Library, CalendarDays, Settings } from 'lucide-react';
 import { PageId, User } from '../types';
 
 interface SidebarProps {
@@ -30,6 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage, onToggle, is
         { id: 'subjects-config', label: 'Asignaturas', icon: <Library size={20} />, roles: adminRoles },
         { id: 'grade-control', label: 'Control de Periodos', icon: <Lock size={20} />, roles: adminRoles }, 
         { id: 'subdireccion', label: 'Subdirección', icon: <Briefcase size={20} />, roles: ['admin', 'subdirector', 'teacher'] }, 
+        { id: 'config', label: 'Configuración', icon: <Settings size={20} />, roles: ['admin'] },
     ];
     
     return items.filter(item => item.roles.includes(user.role));

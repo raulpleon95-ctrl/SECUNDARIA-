@@ -1,7 +1,5 @@
-
-
 import React, { useState, useEffect } from 'react';
-import { Building2 } from 'lucide-react';
+import { Building2, CloudOff, Cloud } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 import DashboardView from './components/DashboardView';
@@ -15,8 +13,10 @@ import GradeControlView from './components/GradeControlView';
 import SubdireccionView from './components/SubdireccionView';
 import SubjectsConfigView from './components/SubjectsConfigView'; 
 import SchedulesView from './components/SchedulesView'; 
+import ConfigView from './components/ConfigView';
 import { SchoolData, PageId, User, SubjectAssignment } from './types';
 import { generateInitialData } from './utils';
+import { saveToFirebase, subscribeToData, getDb } from './firebaseClient';
 
 export default function App() {
   // Auth State
@@ -27,26 +27,71 @@ export default function App() {
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null); // Added Group State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [currentCycle, setCurrentCycle] = useState('2024-2025');
+  const [currentCycle, setCurrentCycle] = useState('2025-2026');
   
+  const [isCloudConnected, setIsCloudConnected] = useState(false);
+
   // Global state for school data - initialized directly in memory
   const [schoolData, setSchoolData] = useState<SchoolData>(generateInitialData());
 
-  // --- CARGA DE DATOS LOCALES AL INICIAR ---
+  // --- CARGA DE DATOS ---
   useEffect(() => {
-    const loadFromLocal = () => {
-      const savedData = localStorage.getItem('school_data_local');
-      if (savedData) {
-        try {
-            const parsedData = JSON.parse(savedData);
-            setSchoolData(parsedData);
-            console.log("Datos cargados desde almacenamiento local.");
-        } catch (e) {
-            console.error("Error al cargar datos locales:", e);
+    // 1. Verificar si hay Firebase configurado
+    if (getDb()) {
+        setIsCloudConnected(true);
+        console.log("Conectado a Firebase. Suscribiendo a cambios...");
+        
+        // Suscripción en tiempo real
+        const unsubscribe = subscribeToData((newData) => {
+            if (newData) {
+                // Fusión de seguridad similar a la local
+                const defaultData = generateInitialData();
+                const mergedData: SchoolData = {
+                    ...defaultData,
+                    ...newData,
+                    visitLogs: newData.visitLogs || [],
+                    minutas: newData.minutas || [],
+                    citations: newData.citations || [],
+                    schedules: newData.schedules || [],
+                    studentsData: newData.studentsData || defaultData.studentsData,
+                    users: newData.users || defaultData.users,
+                    periodDeadlines: newData.periodDeadlines || {},
+                    sabanaLayout: newData.sabanaLayout || defaultData.sabanaLayout,
+                    allowedPeriods: newData.allowedPeriods || defaultData.allowedPeriods
+                };
+                setSchoolData(mergedData);
+                // También actualizamos el caché local por si se va internet
+                localStorage.setItem('school_data_local', JSON.stringify(mergedData));
+            }
+        });
+        return () => unsubscribe();
+    } else {
+        // 2. Si no hay nube, cargar de local storage
+        console.log("Modo Local. Cargando de LocalStorage.");
+        const savedData = localStorage.getItem('school_data_local');
+        if (savedData) {
+            try {
+                const parsedData = JSON.parse(savedData);
+                const defaultData = generateInitialData();
+                const mergedData: SchoolData = {
+                    ...defaultData,
+                    ...parsedData,
+                    visitLogs: parsedData.visitLogs || [],
+                    minutas: parsedData.minutas || [],
+                    citations: parsedData.citations || [],
+                    schedules: parsedData.schedules || [],
+                    studentsData: parsedData.studentsData || defaultData.studentsData,
+                    users: parsedData.users || defaultData.users,
+                    periodDeadlines: parsedData.periodDeadlines || {},
+                    sabanaLayout: parsedData.sabanaLayout || defaultData.sabanaLayout,
+                    allowedPeriods: parsedData.allowedPeriods || defaultData.allowedPeriods
+                };
+                setSchoolData(mergedData);
+            } catch (e) {
+                console.error("Error cargando datos locales:", e);
+            }
         }
-      }
-    };
-    loadFromLocal();
+    }
   }, []);
 
   // --- AUTOMATIC PERIOD CLOSING LOGIC ---
@@ -69,7 +114,7 @@ export default function App() {
       const cdmxDate = new Date(cdmxString);
 
       let hasChanges = false;
-      let newAllowed = [...schoolData.allowedPeriods];
+      let newAllowed = [...(schoolData.allowedPeriods || [])];
 
       Object.entries(schoolData.periodDeadlines).forEach(([key, deadlineStr]) => {
          // deadlineStr es formato ISO local del input (YYYY-MM-DDTHH:MM) que capturó el usuario
@@ -118,7 +163,7 @@ export default function App() {
   const handleNavigate = (page: PageId) => {
     setCurrentPage(page);
     // Reset selection context when navigating to main sections
-    if (['dashboard', 'grades', 'grade-registration', 'teachers', 'subdireccion', 'reports', 'grade-control', 'subjects-config', 'schedules'].includes(page)) {
+    if (['dashboard', 'grades', 'grade-registration', 'teachers', 'subdireccion', 'reports', 'grade-control', 'subjects-config', 'schedules', 'config'].includes(page)) {
       setSelectedGrade(null);
       setSelectedGroup(null);
     }
@@ -138,10 +183,16 @@ export default function App() {
     setSelectedGroup(group);
   };
 
-  // Update global state and Save to Local Storage
+  // Update global state and Save (Local + Cloud)
   const handleUpdateData = (newData: SchoolData) => {
+    // 1. Optimistic update (UI first)
     setSchoolData(newData);
+    // 2. Save Local
     localStorage.setItem('school_data_local', JSON.stringify(newData));
+    // 3. Save Cloud (if connected)
+    if (isCloudConnected) {
+        saveToFirebase(newData).catch(err => console.error("Fallo al guardar en nube:", err));
+    }
   };
 
   const handleCycleChange = (newCycle: string) => {
@@ -149,7 +200,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginView onLogin={handleLogin} users={schoolData.users} />;
+    return <LoginView onLogin={handleLogin} users={schoolData.users || []} />;
   }
 
   const renderPage = () => {
@@ -228,6 +279,10 @@ export default function App() {
         if (user.role !== 'admin' && user.role !== 'subdirector' && user.role !== 'teacher') return <div className="p-8 text-red-500">Acceso Restringido</div>;
         return <SubdireccionView data={schoolData} onUpdateData={handleUpdateData} currentUser={user} currentCycle={currentCycle} />;
 
+      case 'config':
+        if (user.role !== 'admin') return <div className="p-8 text-red-500">Acceso Restringido</div>;
+        return <ConfigView />;
+
       // Placeholders
       default:
         return (
@@ -264,7 +319,12 @@ export default function App() {
                 <div className="flex items-center text-sm text-slate-500">
                    {/* Removed specific School Cycle text here as requested */}
                    <span className="font-medium text-slate-800 mr-2">{schoolData.name}</span>
-                   <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">Ciclo: {currentCycle}</span>
+                   <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold mr-2">Ciclo: {currentCycle}</span>
+                   {isCloudConnected ? (
+                       <span className="text-green-600 text-xs flex items-center font-bold" title="Datos sincronizados en tiempo real"><Cloud size={14} className="mr-1"/> En línea</span>
+                   ) : (
+                       <span className="text-slate-400 text-xs flex items-center" title="Guardando solo en este dispositivo"><CloudOff size={14} className="mr-1"/> Local</span>
+                   )}
                 </div>
                 <div className="flex items-center space-x-4">
                     <div className="text-right">

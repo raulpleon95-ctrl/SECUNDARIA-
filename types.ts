@@ -67,21 +67,51 @@ export interface Citation {
 
 export interface VisitLog {
   id: string;
-  studentId?: number | null; // Made optional for manual entry
+  logType: 'inasistencia' | 'conducta' | 'accidente'; // Distingue el formato
+  studentId?: number | null;
   studentName: string;
-  grade: string; // Can be empty if manual group string covers it
-  group: string; // Stores manual input
-  parentName: string; // Who visited
+  grade: string; 
+  group: string; 
+  parentName: string; 
   date: string;
-  startTime: string;
-  endTime: string;
-  subject: string; // Asunto
-  narrative: string; // Narrativa de hechos
-  agreementsParent: string; // Compromisos padre
-  agreementsStudent: string; // Compromisos alumno
-  teacherIntervention: string; // Intervencion docente
-  faultType: string; // Falta marco convivencia
-  formativeActions: string; // Acciones formativas
+  startTime: string; // HORA
+  endTime: string; // Only for generic use or internal tracking
+  
+  // Common Fields
+  location: string; // LUGAR
+  whoReported: string; // QUIEN REPORTA
+  involvedStudents: string; // ALUMNO(A)S INVOLUCRADO (S)
+  narrative: string; // NARRACIÓN DE LOS HECHOS
+  
+  // Checkboxes "A QUIÉN INFORMÉ"
+  informedDirector: boolean;
+  informedSubdirector: boolean;
+  informedParent: boolean;
+  informedUdeei: boolean;
+
+  // INASISTENCIA Specifics (INAS-APR)
+  teacherActions: string; // ACCIONES QUE APLIQUÉ COMO DOCENTE
+  formativeAction: string; // ACCIÓN FORMATIVA APLICADA
+  generatedCitation: boolean; // ¿SE GENERÓ CITATORIO?
+  udeeiActions: string; // QUÉ ACCIONES REALIZARÉ CON APOYO UDEEI
+  technicalMeasure: string; // MEDIDAS TECNICO PEDAGÓGICA (No asista)
+
+  // CONDUCTA Specifics (C / AE) & ACCIDENTE (AE)
+  pedagogicalMeasure: string; // ACCIONES QUE APLIQUÉ (MEDIDAS TÉCNICO PEDAGÓGICAS)
+  conciliation: boolean; // ¿SE REALIZÓ CONCILIACIÓN?
+  canalization: boolean; // ¿REQUIRIÓ CANALIZACIÓN?
+  canalizationInstitution: string; // A QUE INSTITUCIÓN
+  bullyingProtocol: boolean; // ¿SE VA APLICAR PROTOCOLO ACOSO?
+  bullyingProtocolReason: string; // PORQUÉ
+  vaSeguro: boolean; // ¿SE ACTIVÓ VA SEGURO?
+  vaSeguroObservation: string; // OBSERVACIÓN
+
+  // Footer Fields
+  agreementsParent: string; // ACUERDOS PADRE
+  agreementsStudent: string; // ACUERDOS ALUMNOS (Conducta)
+  attentionToParent: string; // QUÉ ATENCIÓN SE LE DIO AL PADRE
+
+  conformityStaffId?: string; // ID del personal que atiende (para aviso conformidad)
 }
 
 export interface Minuta {

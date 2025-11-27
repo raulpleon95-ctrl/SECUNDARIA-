@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { CalendarDays, Save, CheckCircle2, Search, Printer, Grid, User, ArrowRight, ArrowLeft, FileDown, Plus, Trash2, Cpu } from 'lucide-react';
 import { SchoolData, ScheduleEntry, User as UserType } from '../types';
@@ -58,7 +57,7 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
   
   // 1. Personal de Tecnología (Docentes con materia "Tecnología")
   const technologyStaff = useMemo(() => 
-    data.users.filter(u => 
+    (data.users || []).filter(u => 
         u.role === 'teacher' && 
         u.assignments?.some(a => a.subject === 'Tecnología')
     ).sort((a, b) => a.name.localeCompare(b.name)),
@@ -66,7 +65,7 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
 
   // 2. Personal Académico (Docentes SIN materia "Tecnología")
   const academicStaff = useMemo(() => 
-    data.users.filter(u => 
+    (data.users || []).filter(u => 
         u.role === 'teacher' && 
         !u.assignments?.some(a => a.subject === 'Tecnología')
     ).sort((a, b) => a.name.localeCompare(b.name)),
@@ -74,7 +73,7 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
 
   // 3. Personal de Apoyo (Red Escolar, Laboratorio, Apoyo, Administrativo)
   const supportStaff = useMemo(() => 
-    data.users.filter(u => 
+    (data.users || []).filter(u => 
         ['red_escolar', 'laboratorista', 'apoyo', 'administrative'].includes(u.role)
     ).sort((a, b) => a.name.localeCompare(b.name)),
   [data.users]);
@@ -113,13 +112,13 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
 
   // Obtener el valor de una celda específica
   const getCellValue = (teacherId: string, day: string, period: number) => {
-    const entry = data.schedules.find(s => s.teacherId === teacherId && s.day === day && s.period === period);
+    const entry = (data.schedules || []).find(s => s.teacherId === teacherId && s.day === day && s.period === period);
     return entry ? entry.gradeGroup : '';
   };
 
   // Calcular horas totales asignadas en la sabana
   const calculateTotalHours = (teacherId: string) => {
-      return data.schedules.filter(s => s.teacherId === teacherId && s.gradeGroup.trim() !== '').length;
+      return (data.schedules || []).filter(s => s.teacherId === teacherId && s.gradeGroup.trim() !== '').length;
   };
 
   // Manejar cambio en celda de sábana
@@ -127,7 +126,7 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
     // Normalizar entrada (ej 1a -> 1A)
     const normalizedValue = value.toUpperCase();
 
-    const newSchedules = [...data.schedules];
+    const newSchedules = [...(data.schedules || [])];
     const existingIndex = newSchedules.findIndex(s => s.teacherId === teacherId && s.day === day && s.period === period);
 
     if (existingIndex >= 0) {
@@ -181,7 +180,7 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
       newLayout[section][index] = teacherId;
 
       // --- LÓGICA DE PRECARGA (AUTO-FILL) PARA PERSONAL DE APOYO ---
-      let newSchedules = [...data.schedules];
+      let newSchedules = [...(data.schedules || [])];
       
       if (section === 'support' && teacherId) {
           const user = supportStaff.find(u => u.id === teacherId);
@@ -245,7 +244,7 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
       CLASS_PERIODS.forEach(p => {
           matrix[p] = {};
           WEEK_DAYS.forEach(d => {
-              const entry = data.schedules.find(s => s.teacherId === teacherId && s.day === d && s.period === p);
+              const entry = (data.schedules || []).find(s => s.teacherId === teacherId && s.day === d && s.period === p);
               // Si es profesor de tecnología, formateamos el código de sección
               matrix[p][d] = entry ? (isTech ? formatSectionCode(entry.gradeGroup) : entry.gradeGroup) : '';
           });
@@ -289,7 +288,7 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
           matrix[p] = {};
           WEEK_DAYS.forEach(d => {
               // Buscar profesor ACADÉMICO directo (ej. "1A")
-              let entry = data.schedules.find(s => 
+              let entry = (data.schedules || []).find(s => 
                   s.gradeGroup === gradeGroup && 
                   s.day === d && 
                   s.period === p && 
@@ -298,7 +297,7 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
               
               // Si no hay académico, buscar TECNOLOGÍA por código (ej. "11")
               if (!entry) {
-                  entry = data.schedules.find(s => 
+                  entry = (data.schedules || []).find(s => 
                     s.gradeGroup === techCode && 
                     s.day === d && 
                     s.period === p &&
@@ -307,7 +306,7 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
               }
               
               if (entry) {
-                  const teacher = data.users.find(u => u.id === entry.teacherId);
+                  const teacher = (data.users || []).find(u => u.id === entry.teacherId);
                   
                   // Si es tecnología, mostramos solo "TECNOLOGÍA" sin profesor
                   if (entry.type === 'technology') {
@@ -343,28 +342,28 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
 
   // TIME SLOTS MAPPING FOR OFFICIAL SCHEDULE
   const TIME_SLOTS = [
-      { id: 1, label: '14:00 a 14:50' },
-      { id: 2, label: '14:50 a 15:40' },
-      { id: 3, label: '15:40 a 16:30' },
-      { id: 4, label: '16:30 a 17:20' },
-      { id: 'recess', label: '17:20 a 17:40' },
-      { id: 5, label: '17:40 a 18:30' },
-      { id: 6, label: '18:30 a 19:20' },
-      { id: 7, label: '19:20 a 20:10' },
+      { id: 1, label: '14:00 - 14:50' },
+      { id: 2, label: '14:50 - 15:40' },
+      { id: 3, label: '15:40 - 16:30' },
+      { id: 4, label: '16:30 - 17:20' },
+      { id: 'recess', label: '17:20 - 17:40' },
+      { id: 5, label: '17:40 - 18:30' },
+      { id: 6, label: '18:30 - 19:20' },
+      { id: 7, label: '19:20 - 20:10' },
   ];
 
   // Función para generar el resumen de profesores y horas para el horario grupal
   const getGroupSummary = (gradeGroup: string) => {
       const summary = new Map<string, {subject: string, teacher: string, hours: number}>();
       
-      data.schedules.forEach(entry => {
+      (data.schedules || []).forEach(entry => {
           // SOLO considerar asignaturas académicas.
           // Las tecnologías se excluyen porque el horario grupal es genérico y 
           // los alumnos van a diferentes talleres con diferentes profesores.
           const isAcademicMatch = entry.gradeGroup === gradeGroup && entry.type === 'academic';
 
           if (isAcademicMatch) {
-              const teacher = data.users.find(u => u.id === entry.teacherId);
+              const teacher = (data.users || []).find(u => u.id === entry.teacherId);
               if (teacher) {
                   let subject = 'Asignatura';
                   
@@ -832,31 +831,49 @@ const SchedulesView: React.FC<SchedulesViewProps> = ({ data, onUpdateData, curre
                         <table className="w-full border-collapse border-2 border-black text-xs text-center">
                             <thead>
                                 <tr className="bg-slate-200 print:bg-slate-300">
-                                    <th className="border border-black p-2 w-16">HORA</th>
+                                    <th className="border border-black p-2 w-24">HORA</th>
                                     {WEEK_DAYS.map(d => <th key={d} className="border border-black p-2 w-32 uppercase">{d}</th>)}
                                 </tr>
                             </thead>
                             <tbody>
                                 {(() => {
                                     const schedule = getGroupScheduleMatrix(viewGradeGroup);
-                                    return CLASS_PERIODS.map(period => (
-                                        <tr key={period} className="h-14">
-                                            <td className="border border-black p-2 font-bold bg-slate-50 align-middle">{period}°</td>
-                                            {WEEK_DAYS.map(day => {
-                                                const cell = schedule[period][day];
-                                                return (
-                                                    <td key={day} className="border border-black p-1 align-middle">
-                                                        {/* SOLO ASIGNATURA */}
-                                                        {cell.subject && (
-                                                            <div className="flex items-center justify-center h-full font-bold text-[10px] uppercase leading-tight">
-                                                                {cell.subject}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                );
-                                            })}
-                                        </tr>
-                                    ));
+                                    return TIME_SLOTS.map((slot) => {
+                                        // Render Recess Row
+                                        if (slot.id === 'recess') {
+                                            return (
+                                                <tr key="recess" className="bg-gray-200 print:bg-gray-200 print:print-color-adjust-exact h-8">
+                                                    <td className="border border-black p-1 text-[10px] font-bold">{slot.label}</td>
+                                                    <td colSpan={5} className="border border-black p-1 font-bold tracking-widest text-center">RECESO</td>
+                                                </tr>
+                                            );
+                                        }
+
+                                        // Render Class Row
+                                        const periodNum = slot.id as number;
+                                        return (
+                                            <tr key={periodNum} className="h-14">
+                                                {/* Time Label */}
+                                                <td className="border border-black p-1 font-bold bg-slate-50 align-middle text-[10px] whitespace-nowrap">
+                                                    {slot.label}
+                                                </td>
+                                                {/* Day Cells */}
+                                                {WEEK_DAYS.map(day => {
+                                                    const cell = schedule[periodNum][day];
+                                                    return (
+                                                        <td key={day} className="border border-black p-1 align-middle">
+                                                            {/* SOLO ASIGNATURA */}
+                                                            {cell.subject && (
+                                                                <div className="flex items-center justify-center h-full font-bold text-[10px] uppercase leading-tight">
+                                                                    {cell.subject}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        );
+                                    });
                                 })()}
                             </tbody>
                         </table>
